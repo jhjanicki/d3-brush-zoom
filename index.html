@@ -10,6 +10,7 @@
       margin-top: 50px;
       margin-left: auto;
       margin-right: auto;
+      background-color: beige;
     }
 
     #resetZoom {
@@ -55,7 +56,7 @@
 
     const path = d3.geoPath().projection(projection);
 
-    const colorScale = d3.scaleOrdinal()
+    const colorScale = d3.scaleOrdinal().domain(["class1", "class2", "class3", "class4", "class5"])
       .range(["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99"]);
 
 
@@ -68,10 +69,8 @@
     let brushExtent;
     let brushedSufficient = true; //check if dragged area big enough
 
-    // let isZoomed = false;
-
     const zoom = d3.zoom()
-      .scaleExtent([1, Infinity])
+      .scaleExtent([1, Infinity]) //the max seems to be 8
       .translateExtent([[0, 0], [width, height]])
       .extent([[0, 0], [width, height]])
       .on("zoom", zoomed);
@@ -99,7 +98,7 @@
 
     //
     function isSufficient() { // make sure user can't zoom by clicking
-      return brushExtent[1][0] - brushExtent[0][0] > 10 && brushExtent[1][1] - brushExtent[0][1] > 10;
+      return brushExtent[1][0] - brushExtent[0][0] > 3 && brushExtent[1][1] - brushExtent[0][1] > 3;
     }
 
     //brushEnd function
@@ -114,7 +113,8 @@
 
         const x = -(x0 + x1) / 2;
         const y = -(y0 + y1) / 2;
-        const k = Math.min(8, 0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height));
+        const k = Math.min(40, 0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height));
+        //40 is the max zoom level
 
 
         svg.transition().duration(750).call(
@@ -128,12 +128,12 @@
 
     }
 
-    // In the zoom handler, I needed to update the brush if it's drawn. I did this by getting the existing selection extent, then rescaling those points, then move the brush to the new coordinates.
-
-
+    //the zoom level of the brush don't seem to be right when it's really zoomed in
     function zoomed(e) {
 
       const transform = e.transform; //k,x,y
+
+      console.log(transform)
 
       svg.selectAll('path')
         .attr('transform', transform)
@@ -145,23 +145,10 @@
 
       svg.select('.brush')
         .attr('transform', transform)
-
-      // if (isZoomed) {
-      //   const bbox = d3.select("#land").node().getBBox();
-      //   console.log(brush.extent)
-      //   brush.extent = [[bbox.x, bbox.x + bbox.width], [bbox.y, bbox.y + bbox.height]]
-      //   svg.select(".brush").call(brush)
-      //   console.log(brush.extent)
-      //   // svg.select(".brush").call(brush.move, [[x0, x1], [y0, y1]]);
-      // }
-
-      // isZoomed = true;
-
+        .attr("stroke-width", 1 / transform.k);
     }
 
     function resetZoom() {
-
-      // isZoomed = false;
 
       svg.transition()
         .duration(750)
@@ -170,19 +157,12 @@
 
     d3.select("#resetZoom").on("click", resetZoom);
 
-    let categories = data.map(function (obj) { return obj.cat; });
-    categories = categories.filter(function (v, i) { return categories.indexOf(v) == i; });
-
-    colorScale.domain(categories);
-
-    //this part is to remove the weird artifacts (horizontal lines above and below the map)
-    // draw first map just to get the bbox of the land
     svg.selectAll("path.land")
       .data(land.features)
       .join("path")
       .attr("class", "land")
       .attr("id", "land")
-      .attr("fill", "white")
+      .attr("fill", "beige")
       .attr("stroke", "#808080")
       .attr("d", path);
 
